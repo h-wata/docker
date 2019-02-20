@@ -18,6 +18,9 @@
 ### rosnodeの起動
  1.  docker build
      ```
+     $ # cd workspace
+     $ git clone https://github.com/h-wata/docker_ws
+     $ cd docker_ws/ros/turtle
      $ docker build -t ros-tutorials .
      ```
  1.  rosmaster起動
