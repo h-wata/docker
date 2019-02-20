@@ -16,6 +16,10 @@
    - 実行
    ` $ socat TCP-LISTEN:6000,reuseaddr,fork UNIX-CLIENT:\"$DISPLAY\"`
 ### rosnodeの起動
+ 1.  docker build
+     ```
+     $ docker build -t ros-tutorials .
+     ```
  1.  rosmaster起動
      ```
      $ docker run --rm -e DISPLAY=$ip:0 --name ros-test ros-tutorials roscore
