@@ -47,19 +47,24 @@ RUN apt-get update \
     python-catkin-tools \
     python-rosdep \
     python-setuptools \
+    # python-wstool 
     python-wstool \
-  && apt-get clean \
-  && rm -rf /var/lib/apt/lists/*
+    libboost-all-dev
+  # && apt-get clean \
+  # && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir /root/.ssh
 ADD ssh/id_rsa /root/.ssh
 ADD ssh/id_rsa.pub /root/.ssh
 RUN ssh -o StrictHostKeyChecking=no github.com; exit 0
+RUN ssh -o StrictHostKeyChecking=no bitbucket.org; exit 0
 RUN cd ~ && \
-    mkdir -p ros/src && \
-    cd ros/src && \
+    mkdir -p src && \
+    cd src && \
     wstool init && \
     wstool set -y --git sbgisen/sbgisen_wiki -v master git@github.com:sbgisen/sbgisen_wiki.git && \
+    wstool set -y --git scib_can_interface_subscriber -v master git@github.com:sbgisen/SCIB_CAN_interface_Subscriber.git && \
+    wstool set -y --git akulidar_ros -v master git@github.com:sbgisen/akulidar_ros.git && \
     wstool set -y --git sbgisen/cube         -v develop git@github.com:sbgisen/cube.git && \
     wstool set -y --git vesc                 -v master git@github.com:mit-racecar/vesc.git && \
     wstool set -y --git racecar              -v master git@github.com:mit-racecar/racecar.git && \
@@ -69,8 +74,22 @@ RUN cd ~ && \
     wstool set -y --git ros_controllers      -v master git@github.com:sbgisen/ros_controllers.git && \
     wstool set -y --git hector_slam      -v catkin git@github.com:sbgisen/hector_slam.git && \
     wstool set -y --git mpu6050_serial_to_imu -v master git@github.com:sbgisen/mpu6050_serial_to_imu.git && \
+    wstool set -y --git rospeex -v kinetic https://bitbucket.org/rospeex/rospeex.git && \
     wstool update
 RUN rosdep update
 # /opt/ros/$ROS_DISTRO/share can be changed after rosdep install, so we run it 3 times.
-RUN for i in $(seq 3); do rosdep install --rosdistro $ROS_DISTRO -r -y -i --from-paths /opt/ros/$ROS_DISTRO/share ~/ros/src; done
-RUN rm -rf ~/ros/src
+RUN for i in $(seq 3); do rosdep install --rosdistro $ROS_DISTRO -r -y -i --from-paths /opt/ros/$ROS_DISTRO/share ~/src; done
+RUN cd ~ && \
+    mkdir -p work/lib && \
+    git clone git@github.com:sbgisen/quanergy_client.git && \
+    mkdir quanergy_client/build && \
+    cd quanergy_client/build && \
+    cmake -DCMAKE_BUILD_TYPE=Release .. && \
+    make -j2 && \
+    checkinstall -y --pkgname='quanergy_client'
+RUN cd ~ && \
+    catkin init && \
+    catkin config --extend /opt/ros/kinetic && \
+    catkin config --no-blacklist && \
+    catkin config -a --blacklist effort_controllers force_torque_sensor_controller forward_command_controller gripper_action_controller imu_sensor_controller joint_state_controller joint_trajectory_controller position_controllers ros_controllers rqt_joint_trajectory_controller velocity_controllers voice_server
+RUN rm -rf ~/src
