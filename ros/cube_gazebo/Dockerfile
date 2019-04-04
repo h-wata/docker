@@ -14,6 +14,9 @@ RUN apt-get update \
     ros-kinetic-py-trees \
     wget \
     ssh \
+    sudo \
+    lsb-release \
+    mesa-utils \
     python-catkin-tools \
     python-rosdep \
     python-setuptools \
@@ -68,6 +71,7 @@ RUN cd ~ && \
     mkdir -p ros/src && \
     cd ros/src && \
     wstool init && \
+    wstool set -y --git sbgisen/sbgisen_wiki -v master git@github.com:sbgisen/sbgisen_wiki.git && \
     wstool set -y --git scib_can_interface_subscriber -v master git@github.com:sbgisen/SCIB_CAN_interface_Subscriber.git && \
     wstool set -y --git akulidar_ros -v master git@github.com:sbgisen/akulidar_ros.git && \
     wstool set -y --git sbgisen/cube         -v develop git@github.com:sbgisen/cube.git && \
@@ -86,9 +90,27 @@ RUN rosdep update
 # /opt/ros/$ROS_DISTRO/share can be changed after rosdep install, so we run it 3 times.
 RUN for i in $(seq 3); do rosdep install --rosdistro $ROS_DISTRO -r -y -i --from-paths /opt/ros/$ROS_DISTRO/share ~/ros/src; done
 
+# Get gazebo binaries
+RUN echo "deb http://packages.osrfoundation.org/gazebo/ubuntu `lsb_release -cs` main" > /etc/apt/sources.list.d/gazebo-stable.list \
+ && wget http://packages.osrfoundation.org/gazebo.key -O - | apt-key add - \
+ && apt-get update \
+ && apt-get install -y \
+    gazebo9 \
+    ros-kinetic-gazebo9-ros-pkgs \
+    ros-kinetic-gazebo9-ros-control \
+    ros-kinetic-fake-localization \
+    ros-kinetic-joy \
+ && apt-get clean
+
 RUN cd ~/ros && \
     catkin init && \
     catkin config --extend /opt/ros/kinetic && \
     catkin config --no-blacklist && \
     catkin config -a --blacklist effort_controllers force_torque_sensor_controller forward_command_controller gripper_action_controller imu_sensor_controller joint_state_controller joint_trajectory_controller position_controllers ros_controllers rqt_joint_trajectory_controller velocity_controllers voice_server
-RUN rm -rf ~/ros/src
+RUN /bin/bash -c 'cd ~/ros \
+ && source /opt/ros/kinetic/setup.bash \
+ && catkin build -DCMAKE_BUILD_TYPE=”Release”  -Dfreenect2_DIR=~/src/freenect2/lib/cmake/freenect2'
+# RUN rm -rf ~/ros/src/sbgisen
+
+CMD ["/bin/bash", "-c", "source /opt/ros/kinetic/setup.bash && source /root/ros/devel/setup.bash && roslaunch cube_gazebo robot_office.launch robot:=cuboid"]
+
