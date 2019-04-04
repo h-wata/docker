@@ -1,3 +1,5 @@
+# syntax = docker/dockerfile:1.0-experimental
+
 FROM osrf/ros:kinetic-desktop-full-xenial
  
 ENV ROS_DISTRO=kinetic
@@ -14,6 +16,7 @@ RUN apt-get update \
     ros-kinetic-py-trees \
     wget \
     ssh \
+    openssh-client \
     python-catkin-tools \
     python-rosdep \
     python-setuptools \
@@ -22,13 +25,10 @@ RUN apt-get update \
   # && apt-get clean \
   # && rm -rf /var/lib/apt/lists/*
 
-RUN mkdir /root/.ssh
-ADD ssh/id_rsa /root/.ssh
-ADD ssh/id_rsa.pub /root/.ssh
-RUN ssh -o StrictHostKeyChecking=no github.com; exit 0
-RUN ssh -o StrictHostKeyChecking=no bitbucket.org; exit 0
+RUN mkdir -p -m 0700 ~/.ssh && \
+    ssh-keyscan github.com >> ~/.ssh/known_hosts
 
-RUN mkdir -p ~/lib && \
+RUN --mount=type=ssh mkdir -p ~/lib && \
     cd ~/lib && \
     git clone git@github.com:sbgisen/quanergy_client.git && \
     mkdir quanergy_client/build && \
@@ -64,7 +64,7 @@ RUN mkdir -p ~/lib && \
     make -j8 && \
     checkinstall -y --pkgname='libfreenect2'
 
-RUN cd ~ && \
+RUN --mount=type=ssh cd ~ && \
     mkdir -p ros/src && \
     cd ros/src && \
     wstool init && \
